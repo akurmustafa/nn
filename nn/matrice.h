@@ -16,10 +16,14 @@ namespace matrice {
 
 		int get_row_num() const { return sz1; }
 		int get_col_num() const { return sz2; }
+		T get_val(int i, int j) const { 
+			assert((0 <= i && i < sz1 && 0 <= j && j < sz2) && "indice are not valid");
+			return data[i][j]; 
+		}
 		std::vector<std::vector<T>> get_data() const { return data; }
 
 		template<typename T>
-		void assign_data(T val, int row, int col) { data[row][col] = val; }
+		void assign_val(int row, int col, T val) { data[row][col] = val; }
 
 		Matrix<T> mult(const Matrix& rhs) const {
 			assert((sz2 == rhs.sz1) && "Matrix dimensions doesn't match (mult)");

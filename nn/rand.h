@@ -16,7 +16,7 @@ namespace rand_lib {
 		for (int i = 0; i < sz1; ++i) {
 			for (int j = 0; j < sz2; ++j) {
 				auto val = randn(mean, sigma);
-				res.assign_data(val, i, j);
+				res.assign_val(i, j, val);
 			}
 		}
 		return res;

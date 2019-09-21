@@ -27,6 +27,23 @@ void print_matrix(const matrice::Matrix<T>& mat) {
 }
 
 namespace nn {
+	template<typename T>
+	T sigmoid(T in) {
+		T out = 1 / (1 + std::pow(constants::euler, -in));
+		return out;
+	}
+	template <typename T>
+	matrice::Matrix<T> sigmoid(const matrice::Matrix<T>& in) {
+		matrice::Matrix<double> out(in.get_row_num(), in.get_col_num(), 0.0);
+		for (int i = 0; i < out.get_row_num(); ++i) {
+			for (int j = 0; j < out.get_col_num(); ++j) {
+				T val = sigmoid(in.get_val(i, j));
+				out.assign_val(i, j, val);
+			}
+		}
+		return out;
+	}
+
 	std::vector<double> sigmoid(const std::vector<double>& vals) { 
 		std::vector<double> res(vals.size(), 0.0);
 		for (int i = 0; i != vals.size(); ++i) {
@@ -57,12 +74,14 @@ namespace nn {
 	class Network {
 	private:
 		std::vector<int> layers;
+		int layer_num;
 		std::vector<matrice::Matrix<double>> biases;
 		std::vector<matrice::Matrix<double>> weights;
 		std::vector<matrice::Matrix<double>> activations;
 		std::vector<matrice::Matrix<double>> zs;	// weighted inputs
 	public:
-		Network(std::vector<int> layer_dims) : layers{layer_dims} {
+		Network(std::vector<int> layer_dims) : layers{ layer_dims }{
+			layer_num = layer_dims.size() - 1;
 			double sigma = 1.0 / layer_dims[0];
 			for (int i = 1; i != layer_dims.size(); ++i) {
 				biases.push_back(matrice::Matrix<double>(layer_dims[i],1, 0.0));
@@ -71,7 +90,7 @@ namespace nn {
 				zs.push_back(matrice::Matrix<double>(layer_dims[i], 1, 0.0));
 			}
 		}
-
+		int get_layer_num() const { return layer_num; }
 		matrice::Matrix<double> get_bias(int index) const {
 			assert((0 <= index && index < layers.size()) && "index out of range");
 			return biases[index];
@@ -89,13 +108,32 @@ namespace nn {
 			return zs[index];
 		}
 
+		void assign_z(const matrice::Matrix<double>& z, int index) {
+			zs[index] = z;
+		}
+
+		void assign_activ(const matrice::Matrix<double>& activ, int index) {
+			activations[index] = activ;
+		}
+
 	};
 	template<typename T>
-	matrice::Matrix<T> feed_forward(const matrice::Matrix<T>& lhs, const matrice::Matrix<double>& rhs) {
+	matrice::Matrix<T> feed_pass(const matrice::Matrix<T>& lhs, const matrice::Matrix<double>& rhs) {
 		return lhs.mult(rhs);
 	}
+	
+	template <typename T>
+	matrice::Matrix<double> feed_forward(Network& network, const matrice::Matrix<T>& input) {
+		auto activ = input;
+		for (int i = 0; i < network.get_layer_num(); ++i) {
+			auto z = feed_pass(network.get_weight(i), activ);
+			network.assign_z(z, i);
+			activ = sigmoid(z);
+			network.assign_activ(activ, i);
+		}
+		return activ;
+	}
 }
-
 
 
 int main()
@@ -105,8 +143,11 @@ int main()
 	matrice::Matrix<double> input(layers[0], 1, 2);
 	print_matrix(input);
 	print_matrix(network.get_weight(0));
-	auto res = nn::feed_forward(network.get_weight(0), input);
+	auto res = nn::feed_pass(network.get_weight(0), input);
 	print_matrix(res);
+
+	auto y = nn::feed_forward(network, input);
+	print_matrix(y);
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
