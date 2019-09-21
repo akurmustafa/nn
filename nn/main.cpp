@@ -27,11 +27,13 @@ void print_matrix(const matrice::Matrix<T>& mat) {
 }
 
 namespace nn {
+
 	template<typename T>
-	T sigmoid(T in) {
-		T out = 1 / (1 + std::pow(constants::euler, -in));
+	double sigmoid(T in) {
+		double out = 1 / (1 + std::pow(constants::euler, -in));
 		return out;
 	}
+
 	template <typename T>
 	matrice::Matrix<T> sigmoid(const matrice::Matrix<T>& in) {
 		matrice::Matrix<double> out(in.get_row_num(), in.get_col_num(), 0.0);
@@ -51,13 +53,69 @@ namespace nn {
 		}
 		return res;
 	}
+	template <typename T>
+	double d_sigmoid(T in) {
+		double temp = sigmoid(in);
+		return temp * (1.0 - temp);
+	}
+
+	template <typename T>
+	matrice::Matrix<T> d_sigmoid(const matrice::Matrix<T>& in) {
+		matrice::Matrix<double> out(in.get_row_num(), in.get_col_num(), 0.0);
+		for (int i = 0; i < out.get_row_num(); ++i) {
+			for (int j = 0; j < out.get_col_num(); ++j) {
+				T val = d_sigmoid(in.get_val(i, j));
+				out.assign_val(i, j, val);
+			}
+		}
+		return out;
+	}
+
+	double cross_entropy(double label, double activ) {
+		double res{ 0.0 };
+		if (label == 1)
+			res = -std::log(activ);
+		else if (label == 0)
+			res = -std::log(1.0 - activ);
+		return res;
+	}
+
+	matrice::Matrix<double> cross_entropy(const matrice::Matrix<double> labels, const matrice::Matrix<double> activs) {
+		assert((labels.get_row_num() == activs.get_row_num()) && (labels.get_col_num() == activs.get_col_num()) \
+			&& "dimension don't match");
+		matrice::Matrix<double> loss(labels.get_row_num(), labels.get_col_num(), 0.0);
+		for (int i = 0; i < labels.get_row_num(); ++i) {
+			for (int j = 0; j < labels.get_col_num(); ++j) {
+				double val = cross_entropy(labels.get_val(i, j), activs.get_val(i, j));
+				loss.assign_val(i, j, val);
+			}
+		}
+		return loss;
+	}
 
 	std::vector<double> cross_entropy(const std::vector<int>& labels,const std::vector<double>& activs) {
 		assert((labels.size() == activs.size()) && "the length of labels and activs should be same");
 		std::vector<double> loss(labels.size(), 0.0);
 		for (int i = 0; i != loss.size(); ++i) {
 			assert(0.0 <= activs[i] && activs[i] <= 1.0 && "activations should be between 0 and 1");
-			loss[i] = -1.0 * ((labels[i])* std::log(labels[i]) + (1.0 - labels[i]) * std::log(1.0 - labels[i]));
+			loss[i] = cross_entropy(labels[i], activs[i]);
+		}
+		return loss;
+	}
+
+	double d_cross_entropy(double label, double activ) {
+		return -1.0*(label / activ - (1.0 - label) / (1.0 - activ));
+	}
+
+	matrice::Matrix<double> d_cross_entropy(const matrice::Matrix<double> labels, const matrice::Matrix<double> activs) {
+		assert((labels.get_row_num() == activs.get_row_num()) && (labels.get_col_num() == activs.get_col_num()) \
+			&& "dimension don't match");
+		matrice::Matrix<double> loss(labels.get_row_num(), labels.get_col_num(), 0.0);
+		for (int i = 0; i < labels.get_row_num(); ++i) {
+			for (int j = 0; j < labels.get_col_num(); ++j) {
+				double val = d_cross_entropy(labels.get_val(i, j), activs.get_val(i, j));
+				loss.assign_val(i, j, val);
+			}
 		}
 		return loss;
 	}
