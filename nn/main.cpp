@@ -15,6 +15,17 @@ void print_vector(const std::vector<T>& vec) {
 	std::cout << '\n';
 }
 
+template <typename T>
+void print_matrix(const matrice::Matrix<T>& mat) {
+	auto data = mat.get_data();
+	for (int i = 0; i < mat.get_row_num(); ++i) {
+		for (int j = 0; j < mat.get_col_num(); ++j) {
+			std::cout << data[i][j] << ", ";
+		}
+		std::cout << "\n";
+	}
+}
+
 namespace nn {
 	std::vector<double> sigmoid(const std::vector<double>& vals) { 
 		std::vector<double> res(vals.size(), 0.0);
@@ -46,31 +57,56 @@ namespace nn {
 	class Network {
 	private:
 		std::vector<int> layers;
-		std::vector<std::vector<double>> biases;
+		std::vector<matrice::Matrix<double>> biases;
 		std::vector<matrice::Matrix<double>> weights;
-		std::vector<std::vector<double>> activations;
-		std::vector<std::vector<double>> zs;	// weighted inputs
+		std::vector<matrice::Matrix<double>> activations;
+		std::vector<matrice::Matrix<double>> zs;	// weighted inputs
 	public:
 		Network(std::vector<int> layer_dims) : layers{layer_dims} {
 			double sigma = 1.0 / layer_dims[0];
 			for (int i = 1; i != layer_dims.size(); ++i) {
-				biases.push_back(std::vector<double>(layer_dims[i], 0.0));
-				activations.push_back(std::vector<double>(layer_dims[i], 0.0));
+				biases.push_back(matrice::Matrix<double>(layer_dims[i],1, 0.0));
+				activations.push_back(matrice::Matrix<double>(layer_dims[i], 1, 0.0));
 				weights.push_back(rand_lib::rand_matrix(layer_dims[i], layer_dims[i - 1], 0.0, sigma));
-				zs.push_back(std::vector<double>(layer_dims[i], 0.0));
+				zs.push_back(matrice::Matrix<double>(layer_dims[i], 1, 0.0));
 			}
 		}
-	};
 
+		matrice::Matrix<double> get_bias(int index) const {
+			assert((0 <= index && index < layers.size()) && "index out of range");
+			return biases[index];
+		}
+		matrice::Matrix<double> get_weight(int index) const { 
+			assert((0 <= index && index < layers.size()) && "index out of range");
+			return weights[index]; 
+		}
+		matrice::Matrix<double> get_activation(int index) const {
+			assert((0 <= index && index < layers.size()) && "index out of range");
+			return activations[index];
+		}
+		matrice::Matrix<double> get_z(int index) const {
+			assert((0 <= index && index < layers.size()) && "index out of range");
+			return zs[index];
+		}
+
+	};
+	template<typename T>
+	matrice::Matrix<T> feed_forward(const matrice::Matrix<T>& lhs, const matrice::Matrix<double>& rhs) {
+		return lhs.mult(rhs);
+	}
 }
 
 
 
 int main()
 {
-	std::vector<int> layers{ 5, 2, 1 };
+	std::vector<int> layers{ 2, 2, 1 };
 	nn::Network network(layers);
-
+	matrice::Matrix<double> input(layers[0], 1, 2);
+	print_matrix(input);
+	print_matrix(network.get_weight(0));
+	auto res = nn::feed_forward(network.get_weight(0), input);
+	print_matrix(res);
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

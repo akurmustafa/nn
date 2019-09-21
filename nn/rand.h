@@ -12,11 +12,11 @@ namespace rand_lib {
 		return dist(gen);
 	}
 	matrice::Matrix<double> rand_matrix(int sz1, int sz2, double mean, double sigma) {
-		matrice::Matrix<double> res(sz1, sz2);
+		matrice::Matrix<double> res(sz1, sz2, 0.0);
 		for (int i = 0; i < sz1; ++i) {
 			for (int j = 0; j < sz2; ++j) {
 				auto val = randn(mean, sigma);
-				res.set_data(val, i, j);
+				res.assign_data(val, i, j);
 			}
 		}
 		return res;
