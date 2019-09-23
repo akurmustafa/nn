@@ -27,6 +27,107 @@ void print_matrix(const matrice::Matrix<T>& mat) {
 }
 
 namespace nn {
+	template <typename T>
+	double leaky_relu(T in, double alpha = 0.01) {
+		return in > 0 ? in, alpha * in;
+	}
+
+	template <typename T>
+	matrice::Matrix<double> leaky_relu(const matrice::Matrix<T>& in) {
+		matrice::Matrix<double> out(in.get_row_num(), in.get_col_num(), 0.0);
+		for (int i = 0; i < out.get_row_num(); ++i) {
+			for (int j = 0; j < out.get_col_num(); ++j) {
+				double val = leaky_relu(in.get_val(i, j));
+				out.assign_val(i, j, val);
+			}
+		}
+		return out;
+	}
+
+	template <typename T>
+	double d_leaky_relu(T in, double alpha = 0.01) {
+		return in > 0 ? 1, alpha;
+	}
+
+	template <typename T>
+	matrice::Matrix<double> d_leaky_relu(const matrice::Matrix<T>& in) {
+		matrice::Matrix<double> out(in.get_row_num(), in.get_col_num(), 0.0);
+		for (int i = 0; i < out.get_row_num(); ++i) {
+			for (int j = 0; j < out.get_col_num(); ++j) {
+				double val = d_leaky_relu(in.get_val(i, j));
+				out.assign_val(i, j, val);
+			}
+		}
+		return out;
+	}
+
+	template <typename T>
+	T relu(T in) {
+		return in > 0 ? in : 0;
+	}
+
+	template <typename T>
+	matrice::Matrix<T> relu(const matrice::Matrix<T>& in) {
+		matrice::Matrix<T> out(in.get_row_num(), in.get_col_num(), 0.0);
+		for (int i = 0; i < out.get_row_num(); ++i) {
+			for (int j = 0; j < out.get_col_num(); ++j) {
+				T val = relu(in.get_val(i, j));
+				out.assign_val(i, j, val);
+			}
+		}
+		return out;
+	}
+	
+	template <typename T>
+	T d_relu(T in) {
+		return in > 0 ? 1 : 0;
+	}
+
+	template <typename T>
+	matrice::Matrix<T> d_relu(const matrice::Matrix<T>& in) {
+		matrice::Matrix<T> out(in.get_row_num(), in.get_col_num(), 0.0);
+		for (int i = 0; i < out.get_row_num(); ++i) {
+			for (int j = 0; j < out.get_col_num(); ++j) {
+				T val = d_relu(in.get_val(i, j));
+				out.assign_val(i, j, val);
+			}
+		}
+		return out;
+	}
+
+	template <typename T>
+	double tanh(T in) {
+		return 2.0 / (1 + std::pow(constants::euler, -2 * in)) - 1.0;
+	}
+
+	template <typename T>
+	matrice::Matrix<double> tanh(const matrice::Matrix<T>& in) {
+		matrice::Matrix<double> out(in.get_row_num(), in.get_col_num(), 0.0);
+		for (int i = 0; i < out.get_row_num(); ++i) {
+			for (int j = 0; j < out.get_col_num(); ++j) {
+				double val = tanh(in.get_val(i, j));
+				out.assign_val(i, j, val);
+			}
+		}
+		return out;
+	}
+
+	template <typename T>
+	double d_tanh(T in) {
+		return (1.0 -std::pow(tanh(in), 2));
+	}
+
+	template <typename T>
+	matrice::Matrix<double> d_tanh(const matrice::Matrix<T>& in) {
+		matrice::Matrix<double> out(in.get_row_num(), in.get_col_num(), 0.0);
+		for (int i = 0; i < out.get_row_num(); ++i) {
+			for (int j = 0; j < out.get_col_num(); ++j) {
+				double val = d_tanh(in.get_val(i, j));
+				out.assign_val(i, j, val);
+			}
+		}
+		return out;
+	}
 
 	template<typename T>
 	double sigmoid(T in) {
@@ -39,32 +140,25 @@ namespace nn {
 		matrice::Matrix<double> out(in.get_row_num(), in.get_col_num(), 0.0);
 		for (int i = 0; i < out.get_row_num(); ++i) {
 			for (int j = 0; j < out.get_col_num(); ++j) {
-				T val = sigmoid(in.get_val(i, j));
+				double val = sigmoid(in.get_val(i, j));
 				out.assign_val(i, j, val);
 			}
 		}
 		return out;
 	}
 
-	std::vector<double> sigmoid(const std::vector<double>& vals) { 
-		std::vector<double> res(vals.size(), 0.0);
-		for (int i = 0; i != vals.size(); ++i) {
-			res[i] = 1 / (1 + std::pow(constants::euler, vals[i]));
-		}
-		return res;
-	}
-	template <typename T>
+	template<typename T>
 	double d_sigmoid(T in) {
-		double temp = sigmoid(in);
-		return temp * (1.0 - temp);
+		double res = sigmoid(in);
+		return res * (1.0 - res);
 	}
 
 	template <typename T>
-	matrice::Matrix<T> d_sigmoid(const matrice::Matrix<T>& in) {
+	matrice::Matrix<double> d_sigmoid(const matrice::Matrix<T>& in) {
 		matrice::Matrix<double> out(in.get_row_num(), in.get_col_num(), 0.0);
 		for (int i = 0; i < out.get_row_num(); ++i) {
 			for (int j = 0; j < out.get_col_num(); ++j) {
-				T val = d_sigmoid(in.get_val(i, j));
+				double val = d_sigmoid(in.get_val(i, j));
 				out.assign_val(i, j, val);
 			}
 		}
@@ -77,6 +171,9 @@ namespace nn {
 			res = -std::log(activ);
 		else if (label == 0)
 			res = -std::log(1.0 - activ);
+		else {
+			res = -1.0 * (std::log(activ) + std::log(1.0 - activ));
+		}
 		return res;
 	}
 
@@ -93,18 +190,9 @@ namespace nn {
 		return loss;
 	}
 
-	std::vector<double> cross_entropy(const std::vector<int>& labels,const std::vector<double>& activs) {
-		assert((labels.size() == activs.size()) && "the length of labels and activs should be same");
-		std::vector<double> loss(labels.size(), 0.0);
-		for (int i = 0; i != loss.size(); ++i) {
-			assert(0.0 <= activs[i] && activs[i] <= 1.0 && "activations should be between 0 and 1");
-			loss[i] = cross_entropy(labels[i], activs[i]);
-		}
-		return loss;
-	}
 
 	double d_cross_entropy(double label, double activ) {
-		return -1.0*(label / activ - (1.0 - label) / (1.0 - activ));
+		return -1.0 * (label / activ - (1.0 - label) / (1.0 - activ));
 	}
 
 	matrice::Matrix<double> d_cross_entropy(const matrice::Matrix<double> labels, const matrice::Matrix<double> activs) {
@@ -176,7 +264,7 @@ namespace nn {
 
 	};
 	template<typename T>
-	matrice::Matrix<T> feed_pass(const matrice::Matrix<T>& lhs, const matrice::Matrix<double>& rhs) {
+	matrice::Matrix<T> forward(const matrice::Matrix<T>& lhs, const matrice::Matrix<double>& rhs) {
 		return lhs.mult(rhs);
 	}
 	
@@ -184,7 +272,7 @@ namespace nn {
 	matrice::Matrix<double> feed_forward(Network& network, const matrice::Matrix<T>& input) {
 		auto activ = input;
 		for (int i = 0; i < network.get_layer_num(); ++i) {
-			auto z = feed_pass(network.get_weight(i), activ);
+			auto z = forward(network.get_weight(i), activ);
 			network.assign_z(z, i);
 			activ = sigmoid(z);
 			network.assign_activ(activ, i);
