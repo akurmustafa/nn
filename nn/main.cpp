@@ -6,6 +6,7 @@
 #include <vector>
 #include <iostream>
 
+enum class activation_t{ tanh, sigmoid, relu, leaky_relu, linear };
 // implement classes for neural net computation
 template<class T>
 void print_vector(const std::vector<T>& vec) {
@@ -29,7 +30,7 @@ void print_matrix(const matrice::Matrix<T>& mat) {
 namespace nn {
 	template <typename T>
 	double leaky_relu(T in, double alpha = 0.01) {
-		return in > 0 ? in, alpha * in;
+		return in > 0 ? in : alpha * in;
 	}
 
 	template <typename T>
@@ -46,7 +47,7 @@ namespace nn {
 
 	template <typename T>
 	double d_leaky_relu(T in, double alpha = 0.01) {
-		return in > 0 ? 1, alpha;
+		return in > 0 ? 1 : alpha;
 	}
 
 	template <typename T>
@@ -220,14 +221,17 @@ namespace nn {
 	class Network {
 	private:
 		std::vector<int> layers;
+		std::vector<activation_t> activation_funcs;
 		int layer_num;
 		std::vector<matrice::Matrix<double>> biases;
 		std::vector<matrice::Matrix<double>> weights;
 		std::vector<matrice::Matrix<double>> activations;
 		std::vector<matrice::Matrix<double>> zs;	// weighted inputs
 	public:
-		Network(std::vector<int> layer_dims) : layers{ layer_dims }{
+		Network(const std::vector<int>& layer_dims, const std::vector<activation_t>& activ_funcs) : layers{ layer_dims },\
+			activation_funcs{ activ_funcs }{
 			layer_num = layer_dims.size() - 1;
+			assert((layer_num == activation_funcs.size()) && "layer num and activaiton func size don't match");
 			double sigma = 1.0 / layer_dims[0];
 			for (int i = 1; i != layer_dims.size(); ++i) {
 				biases.push_back(matrice::Matrix<double>(layer_dims[i],1, 0.0));
@@ -241,6 +245,9 @@ namespace nn {
 			assert((0 <= index && index < layers.size()) && "index out of range");
 			return biases[index];
 		}
+
+		const std::vector<activation_t>& get_activation_funcs() const { return activation_funcs; }
+
 		matrice::Matrix<double> get_weight(int index) const { 
 			assert((0 <= index && index < layers.size()) && "index out of range");
 			return weights[index]; 
@@ -271,10 +278,22 @@ namespace nn {
 	template <typename T>
 	matrice::Matrix<double> feed_forward(Network& network, const matrice::Matrix<T>& input) {
 		auto activ = input;
+		auto activation_funcs = network.get_activation_funcs();
 		for (int i = 0; i < network.get_layer_num(); ++i) {
 			auto z = forward(network.get_weight(i), activ);
 			network.assign_z(z, i);
-			activ = sigmoid(z);
+			switch (activation_funcs[i]) {
+			case activation_t::tanh: activ = tanh(z); 
+				break;
+			case activation_t::sigmoid: activ = sigmoid(z); 
+				break;
+			case activation_t::relu: activ = relu(z); 
+				break;
+			case activation_t::leaky_relu: activ = leaky_relu(z); 
+				break;
+			default: activ = z;
+				break;
+			}
 			network.assign_activ(activ, i);
 		}
 		return activ;
@@ -285,14 +304,19 @@ namespace nn {
 int main()
 {
 	std::vector<int> layers{ 2, 2, 1 };
-	nn::Network network(layers);
+	std::vector<activation_t> activ_funcs{activation_t::relu, activation_t::sigmoid};
+	nn::Network network(layers, activ_funcs);
 	matrice::Matrix<double> input(layers[0], 1, 2);
+	auto y = nn::feed_forward(network, input);
 	print_matrix(input);
 	print_matrix(network.get_weight(0));
-	auto res = nn::feed_pass(network.get_weight(0), input);
-	print_matrix(res);
-
-	auto y = nn::feed_forward(network, input);
+	print_matrix(network.get_bias(0));
+	print_matrix(network.get_z(0));
+	print_matrix(network.get_activation(0));
+	print_matrix(network.get_weight(1));
+	print_matrix(network.get_bias(1));
+	print_matrix(network.get_z(1));
+	print_matrix(network.get_activation(1));
 	print_matrix(y);
 }
 
