@@ -11,11 +11,28 @@ namespace rand_lib {
 		std::normal_distribution<> dist(mean, sigma);
 		return dist(gen);
 	}
-	matrice::Matrix<double> rand_matrix(int sz1, int sz2, double mean, double sigma) {
+
+	matrice::Matrix<double> randn_matrix(int sz1, int sz2, double mean, double sigma) {
 		matrice::Matrix<double> res(sz1, sz2, 0.0);
 		for (int i = 0; i < sz1; ++i) {
 			for (int j = 0; j < sz2; ++j) {
 				auto val = randn(mean, sigma);
+				res.assign_val(i, j, val);
+			}
+		}
+		return res;
+	}
+
+	double rand(double min, double max) {
+		std::uniform_real_distribution<> dist(min, max);
+		return dist(gen);
+	}
+
+	matrice::Matrix<double> rand_matrix(int sz1, int sz2, double low, double high) {
+		matrice::Matrix<double> res(sz1, sz2, 0.0);
+		for (int i = 0; i < sz1; ++i) {
+			for (int j = 0; j < sz2; ++j) {
+				auto val = rand(low, high);
 				res.assign_val(i, j, val);
 			}
 		}

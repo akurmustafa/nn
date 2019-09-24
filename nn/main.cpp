@@ -6,7 +6,13 @@
 #include <vector>
 #include <iostream>
 
+struct dropout_t {
+	double flag{ 1 };
+	double p{ 0.5 };
+};
+
 enum class activation_t{ tanh, sigmoid, relu, leaky_relu, linear };
+
 // implement classes for neural net computation
 template<class T>
 void print_vector(const std::vector<T>& vec) {
@@ -222,21 +228,23 @@ namespace nn {
 	private:
 		std::vector<int> layers;
 		std::vector<activation_t> activation_funcs;
+		std::vector<dropout_t> dropouts;
 		int layer_num;
 		std::vector<matrice::Matrix<double>> biases;
 		std::vector<matrice::Matrix<double>> weights;
 		std::vector<matrice::Matrix<double>> activations;
 		std::vector<matrice::Matrix<double>> zs;	// weighted inputs
 	public:
-		Network(const std::vector<int>& layer_dims, const std::vector<activation_t>& activ_funcs) : layers{ layer_dims },\
-			activation_funcs{ activ_funcs }{
+		Network(const std::vector<int>& layer_dims, const std::vector<activation_t>& activ_funcs, \
+			const std::vector<dropout_t> dropout_vec) : layers{ layer_dims }, activation_funcs{ activ_funcs }, \
+			dropouts{dropout_vec}{
 			layer_num = layer_dims.size() - 1;
 			assert((layer_num == activation_funcs.size()) && "layer num and activaiton func size don't match");
-			double sigma = 1.0 / layer_dims[0];
 			for (int i = 1; i != layer_dims.size(); ++i) {
+				double sigma = 1.0 / layer_dims[i - 1];
 				biases.push_back(matrice::Matrix<double>(layer_dims[i],1, 0.0));
 				activations.push_back(matrice::Matrix<double>(layer_dims[i], 1, 0.0));
-				weights.push_back(rand_lib::rand_matrix(layer_dims[i], layer_dims[i - 1], 0.0, sigma));
+				weights.push_back(rand_lib::randn_matrix(layer_dims[i], layer_dims[i - 1], 0.0, std::sqrt(2 * sigma)));
 				zs.push_back(matrice::Matrix<double>(layer_dims[i], 1, 0.0));
 			}
 		}
@@ -247,7 +255,7 @@ namespace nn {
 		}
 
 		const std::vector<activation_t>& get_activation_funcs() const { return activation_funcs; }
-
+		const std::vector<dropout_t>& get_dropouts() const { return dropouts; }
 		matrice::Matrix<double> get_weight(int index) const { 
 			assert((0 <= index && index < layers.size()) && "index out of range");
 			return weights[index]; 
@@ -279,6 +287,7 @@ namespace nn {
 	matrice::Matrix<double> feed_forward(Network& network, const matrice::Matrix<T>& input) {
 		auto activ = input;
 		auto activation_funcs = network.get_activation_funcs();
+		auto dropouts = network.get_dropouts();
 		for (int i = 0; i < network.get_layer_num(); ++i) {
 			auto z = forward(network.get_weight(i), activ);
 			network.assign_z(z, i);
@@ -294,6 +303,11 @@ namespace nn {
 			default: activ = z;
 				break;
 			}
+			if (dropouts[i].flag) {
+				auto mask = (rand_lib::rand_matrix(activ.get_row_num(), activ.get_col_num(), 0.0, 1.0) > dropouts[i].p);
+				mask = mask / dropouts[i].p;
+				activ = activ * mask;
+			}
 			network.assign_activ(activ, i);
 		}
 		return activ;
@@ -301,23 +315,23 @@ namespace nn {
 }
 
 
-int main()
-{
+int main(){
+	std::vector<dropout_t> dropout_vec{dropout_t{ 1, 0.5 }, dropout_t{ 0, 0.0 }}; // not use dropout in the finaly layer
 	std::vector<int> layers{ 2, 2, 1 };
 	std::vector<activation_t> activ_funcs{activation_t::relu, activation_t::sigmoid};
-	nn::Network network(layers, activ_funcs);
+	nn::Network network(layers, activ_funcs, dropout_vec);
 	matrice::Matrix<double> input(layers[0], 1, 2);
 	auto y = nn::feed_forward(network, input);
-	print_matrix(input);
-	print_matrix(network.get_weight(0));
-	print_matrix(network.get_bias(0));
-	print_matrix(network.get_z(0));
-	print_matrix(network.get_activation(0));
-	print_matrix(network.get_weight(1));
-	print_matrix(network.get_bias(1));
-	print_matrix(network.get_z(1));
-	print_matrix(network.get_activation(1));
-	print_matrix(y);
+	std::cout << "input: \n"; print_matrix(input);
+	std::cout << "weight 0: \n"; print_matrix(network.get_weight(0));
+	std::cout << "bias 0: \n"; print_matrix(network.get_bias(0));
+	std::cout << "z 0: \n"; print_matrix(network.get_z(0));
+	std::cout << "activation 0: \n"; print_matrix(network.get_activation(0));
+	std::cout << "weight 1: \n"; print_matrix(network.get_weight(1));
+	std::cout << "bias 1: \n"; print_matrix(network.get_bias(1));
+	std::cout << "z 1: "; print_matrix(network.get_z(1));
+	std::cout << "activation 1: \n"; print_matrix(network.get_activation(1));
+	std::cout << "output: \n"; print_matrix(y);
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
