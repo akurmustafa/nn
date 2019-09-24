@@ -13,6 +13,72 @@ struct dropout_t {
 
 enum class activation_t{ tanh, sigmoid, relu, leaky_relu, linear };
 
+matrice::Matrix<double> calc_mean(const matrice::Matrix<double>& in, int axis = 1) {
+	int row_num = in.get_row_num();
+	int col_num = in.get_col_num();
+
+	if (axis == 1) {
+		matrice::Matrix<double> res(row_num, 1, 0.0);
+		for (int i = 0; i < row_num; ++i) {
+			double total{ 0.0 };
+			for (int j = 0; j < col_num; ++j) {
+				total += in.get_val(i, j);
+			}
+			res.assign_val(i, 0, total / col_num);
+		}
+		return res;
+	}
+	else if (axis == 0) {
+		matrice::Matrix<double> res(1, col_num, 0.0);
+		for (int j = 0; j < col_num; ++j) {
+			double total{ 0.0 };
+			for (int i = 0; i < row_num; ++i) {
+				total += in.get_val(i, j);
+			}
+			res.assign_val(0, j, total / row_num);
+		}
+		return res;
+	}
+	return matrice::Matrix<double>(0, 0, 0.0);
+}
+
+matrice::Matrix<double> standard_dev(const matrice::Matrix<double>& in, int axis = 1) {
+	// assumes mean is zero
+	int row_num = in.get_row_num();
+	int col_num = in.get_col_num();
+
+	if (axis == 1) {
+		matrice::Matrix<double> res(row_num, 1, 0.0);
+		for (int i = 0; i < row_num; ++i) {
+			double total{ 0.0 };
+			for (int j = 0; j < col_num; ++j) {
+				total += std::pow(in.get_val(i, j), 2);
+			}
+			res.assign_val(i, 0, std::sqrt(total / col_num));
+		}
+		return res;
+	}
+	else if (axis == 0) {
+		matrice::Matrix<double> res(1, col_num, 0.0);
+		for (int j = 0; j < col_num; ++j) {
+			double total{ 0.0 };
+			for (int i = 0; i < row_num; ++i) {
+				total += std::pow(in.get_val(i, j), 2);
+			}
+			res.assign_val(0, j, std::sqrt(total / row_num));
+		}
+		return res;
+	}
+	return matrice::Matrix<double>(0, 0, 0.0);
+}
+
+matrice::Matrix<double> preprocess(const matrice::Matrix<double>& input) {
+	auto means = calc_mean(input, 1);
+	auto processed = input - means;
+	auto std = standard_dev(processed, 1);
+	return processed;
+}
+
 // implement classes for neural net computation
 template<class T>
 void print_vector(const std::vector<T>& vec) {
@@ -314,13 +380,15 @@ namespace nn {
 	}
 }
 
-
 int main(){
 	std::vector<dropout_t> dropout_vec{dropout_t{ 1, 0.5 }, dropout_t{ 0, 0.0 }}; // not use dropout in the finaly layer
 	std::vector<int> layers{ 2, 2, 1 };
 	std::vector<activation_t> activ_funcs{activation_t::relu, activation_t::sigmoid};
 	nn::Network network(layers, activ_funcs, dropout_vec);
 	matrice::Matrix<double> input(layers[0], 1, 2);
+	matrice::Matrix<double> dummy(5, 4, 2);
+	print_matrix(standard_dev(dummy));
+	print_matrix(preprocess(dummy));
 	auto y = nn::feed_forward(network, input);
 	std::cout << "input: \n"; print_matrix(input);
 	std::cout << "weight 0: \n"; print_matrix(network.get_weight(0));

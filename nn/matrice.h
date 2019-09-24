@@ -41,6 +41,19 @@ namespace matrice {
 		}
 	};
 
+	Matrix<double> operator-(const Matrix<double>& lhs, const Matrix<double>& rhs) {
+		assert((lhs.get_row_num() == rhs.get_row_num()) && (rhs.get_col_num() == 1) && \
+			("Matrix dimension don't match"));
+		Matrix<double> res(lhs.get_row_num(), lhs.get_col_num(), 0.0);
+		for (int i = 0; i < lhs.get_row_num(); ++i) {
+			for (int j = 0; j < lhs.get_col_num(); ++j) {
+				double val = lhs.get_val(i, j) - rhs.get_val(i, 0);
+				res.assign_val(i, j, val);
+			}
+		}
+		return res;
+	}
+
 	Matrix<double> operator*(const Matrix<double>& lhs, const Matrix<double>& rhs) {
 		assert((lhs.get_row_num() == rhs.get_row_num()) && (lhs.get_col_num() == rhs.get_col_num()) && \
 			("Matrix dimension don't match"));
