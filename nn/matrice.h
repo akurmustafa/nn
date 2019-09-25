@@ -78,6 +78,27 @@ namespace matrice {
 		return res;
 	}
 
+	Matrix<double> operator/(const Matrix<double>& lhs, const Matrix<double>& rhs) {
+		assert((lhs.get_row_num() == rhs.get_row_num() && rhs.get_col_num() == 1) ||
+				(lhs.get_col_num() == rhs.get_col_num() && rhs.get_row_num() == 1 )
+				&& "Dimensions don't match");
+		int axis{ 0 };
+		if (rhs.get_row_num() == 1)
+			axis = 1;
+		Matrix<double> res(lhs.get_row_num(), lhs.get_col_num(), 0.0);
+		for (int i = 0; i < lhs.get_row_num(); ++i) {
+			for (int j = 0; j < lhs.get_col_num(); ++j) {
+				double val{ 0.0 };
+				if (axis)
+					val = lhs.get_val(i, j) / rhs.get_val(0, j);
+				else
+					val = lhs.get_val(i, j) / rhs.get_val(i, 0);
+				res.assign_val(i, j, val);
+			}
+		}
+		return res;
+	}
+
 	Matrix<double> operator>(const Matrix<double> in, double val) {
 		Matrix<double> res(in.get_row_num(), in.get_col_num(), 0.0);
 		for (int i = 0; i < in.get_row_num(); ++i) {

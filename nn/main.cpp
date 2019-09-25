@@ -387,6 +387,8 @@ int main(){
 	nn::Network network(layers, activ_funcs, dropout_vec);
 	matrice::Matrix<double> input(layers[0], 1, 2);
 	matrice::Matrix<double> dummy(5, 4, 2);
+	matrice::Matrix<double> denom(1, 4, 0.5);
+	print_matrix(dummy / denom);
 	print_matrix(standard_dev(dummy));
 	print_matrix(preprocess(dummy));
 	auto y = nn::feed_forward(network, input);
